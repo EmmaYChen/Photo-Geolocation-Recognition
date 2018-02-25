@@ -22,31 +22,143 @@ def build_model(is_training, inputs, params):
     out = images
     # Define the number of channels of each convolution
     # For each block, we do: 3x3 conv -> batch norm -> relu -> 2x2 maxpool
-    num_channels = params.num_channels
+    # num_channels = params.num_channels
     bn_momentum = params.bn_momentum
-    channels = [num_channels, num_channels * 2, num_channels * 4, num_channels * 8]
-    for i, c in enumerate(channels):
-        with tf.variable_scope('block_{}'.format(i+1)):
-            out = tf.layers.conv2d(out, c, 3, padding='same')
-            if params.use_batch_norm:
-                out = tf.layers.batch_normalization(out, momentum=bn_momentum, training=is_training)
-            out = tf.nn.relu(out)
-            out = tf.layers.max_pooling2d(out, 2, 2)
+    # channels = [num_channels, num_channels * 2, num_channels * 4, num_channels * 8]
+    # for i, c in enumerate(channels):
+    #     with tf.variable_scope('block_{}'.format(i+1)):
+    #         out = tf.layers.conv2d(out, c, 3, padding='same')
+    #         if params.use_batch_norm:
+    #             out = tf.layers.batch_normalization(out, momentum=bn_momentum, training=is_training)
+    #         out = tf.nn.relu(out)
+    #         out = tf.layers.max_pooling2d(out, 2, 2)
 
+    ##### modification - Add AlexNet ########
+    # conv1
+    # conv(11, 11, 96, 4, 4, padding='VALID', name='conv1')
 
-    out = tf.contrib.layers.flatten(out)
-    out = tf.nn.dropout(out, keep_prob = 0.3, name='dropout_fc1')  # 0.5 by default
+    k = 11; c = 96; s_h = 4; s_w = 4
+    out = tf.layers.conv2d(out, filters = c, kernel_size = k, strides = (s_h, s_w), padding='valid')
+    if params.use_batch_norm:
+        out = tf.layers.batch_normalization(out, momentum=bn_momentum, training=is_training)
+    out = tf.nn.relu(out)
+    
+    # print ('conv1' + str(conv1.shape))
+    # lrn1
+    # lrn(2, 2e-05, 0.75, name='norm1')
+    radius = 2; alpha = 2e-05; beta = 0.75; bias = 1.0
+    out = tf.nn.local_response_normalization(out, depth_radius=radius, alpha=alpha, beta=beta, bias=bias)
+
+    # maxpool1
+    # max_pool(3, 3, 2, 2, padding='VALID', name='pool1')
+    k_h = 3; s_h = 2
+    # maxpool1 = tf.nn.max_pool(lrn1, ksize=[1, k_h, k_w, 1], strides=[1, s_h, s_w, 1], padding=padding)
+    out = tf.layers.max_pooling2d(out, pool_size=k_h, strides = s_h, padding='valid')
+    # print maxpool1.shape
+
+    # conv2
+    # conv(5, 5, 256, 1, 1, group=2, name='conv2')
+    k = 5; c = 256; s_h = 1; s_w = 1
+    out = tf.layers.conv2d(out, filters=c, kernel_size=k, strides=(s_h, s_w), padding='same')
+    if params.use_batch_norm:
+        out = tf.layers.batch_normalization(out, momentum=bn_momentum, training=is_training)
+    out = tf.nn.relu(out)
+    # print conv2.shape
+
+    # lrn2
+    # lrn(2, 2e-05, 0.75, name='norm2')
+    radius = 2; alpha = 2e-05; beta = 0.75; bias = 1.0
+    out = tf.nn.local_response_normalization(out, depth_radius=radius, alpha=alpha, beta=beta, bias=bias)
+
+    # maxpool2
+    # max_pool(3, 3, 2, 2, padding='VALID', name='pool2')
+    k_h = 3; s_h = 2
+    # maxpool2 = tf.nn.max_pool(lrn2, ksize=[1, k_h, k_w, 1], strides=[1, s_h, s_w, 1], padding=padding)
+    out = tf.layers.max_pooling2d(out, pool_size=k_h, strides = s_h, padding='valid')
+    # print maxpool2.shape
+
+    # conv3
+    # conv(3, 3, 384, 1, 1, name='conv3')
+    k = 3; c = 384; s_h = 1; s_w = 1
+    out = tf.layers.conv2d(out, filters=c, kernel_size=k, strides=(s_h, s_w), padding='same')
+    if params.use_batch_norm:
+        out = tf.layers.batch_normalization(out, momentum=bn_momentum, training=is_training)
+    out = tf.nn.relu(out)
+
+    #print conv3.shape
+    # conv4
+    # conv(3, 3, 384, 1, 1, name='conv4')
+    k = 3; c = 384; s_h = 1; s_w = 1
+    out = tf.layers.conv2d(out, filters=c, kernel_size=k, strides=(s_h, s_w), padding='same')
+    if params.use_batch_norm:
+        out = tf.layers.batch_normalization(out, momentum=bn_momentum, training=is_training)
+    out = tf.nn.relu(out)
+
+    #print conv4.shape
+
+    # conv5
+    # conv(3, 3, 256, 1, 1, name='conv5')
+    k = 3; c = 256; s_h = 1; s_w = 1
+    out = tf.layers.conv2d(out, filters=c, kernel_size=k, strides=(s_h, s_w), padding='same')
+    if params.use_batch_norm:
+        out = tf.layers.batch_normalization(out, momentum=bn_momentum, training=is_training)
+    out = tf.nn.relu(out)
+
+    #print conv5.shape
+
+    # maxpool5
+    # max_pool(3, 3, 2, 2, padding='VALID', name='pool5')
+    k_h = 3; s_h = 2
+    # maxpool5 = tf.nn.max_pool(conv5, ksize=[1, k_h, k_w, 1], strides=[1, s_h, s_w, 1], padding=padding)
+    out = tf.layers.max_pooling2d(out, pool_size=k_h, strides = s_h, padding='same')
+# stopped here
+
     with tf.variable_scope('fc_1'):
-        out = tf.layers.dense(out, num_channels * 8)
-        if params.use_batch_norm:
-            out = tf.layers.batch_normalization(out, momentum=bn_momentum, training=is_training)
+        out = tf.contrib.layers.flatten(out)
+        print out.shape
+        out = tf.layers.dense(out, 4096)
         out = tf.nn.relu(out)
-        out = tf.nn.dropout(out, keep_prob = 0.3, name='dropout_fc1')  # 0.5 by default
-    with tf.variable_scope('fc_2'): 
-        logits = tf.layers.dense(out, params.num_labels)
+    with tf.variable_scope('fc_2'):
+        out = tf.layers.dense(out, 4096)
+        out = tf.nn.relu(out)
 
+    with tf.variable_scope('fc_3'):
+        logits = tf.layers.dense(out, params.num_labels)
     return logits
 
+
+
+
+    # # fc6
+    # # fc(4096, name='fc6')
+    # fc6 = tf.nn.relu(tf.reshape(maxpool5, [-1, int(prod(maxpool5.get_shape()[1:]))]))
+    #
+    # # fc7
+    # # fc(4096, name='fc7')
+    # fc7 = tf.nn.relu(fc6)
+    #
+    # # fc8
+    # # fc(1000, relu=False, name='fc8')
+    # fc8 = tf.nn.xw_plus_b(fc7)
+
+
+
+
+    ########### END ##########
+
+    # assert out.get_shape().as_list() == [None, 4, 4, num_channels * 8]
+    #
+    # out = tf.reshape(out, [-1, 4 * 4 * num_channels * 8])
+    # with tf.variable_scope('fc_1'):
+    #     out = tf.layers.dense(out, num_channels * 8)
+    #     if params.use_batch_norm:
+    #         out = tf.layers.batch_normalization(out, momentum=bn_momentum, training=is_training)
+    #     out = tf.nn.relu(out)
+    # with tf.variable_scope('fc_2'):
+    #     logits = tf.layers.dense(out, params.num_labels)
+    #
+    # return logits
+    #
 
 def model_fn(mode, inputs, params, reuse=False):
     """Model function defining the graph operations.
@@ -109,6 +221,7 @@ def model_fn(mode, inputs, params, reuse=False):
     tf.summary.scalar('accuracy', accuracy)
     tf.summary.image('train_image', inputs['images'])
 
+    #TODO: if mode == 'eval': ?
     # Add incorrectly labeled images
     mask = tf.not_equal(labels, predictions)
 
