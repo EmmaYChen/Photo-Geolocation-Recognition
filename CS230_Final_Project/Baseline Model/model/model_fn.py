@@ -33,13 +33,16 @@ def build_model(is_training, inputs, params):
             out = tf.nn.relu(out)
             out = tf.layers.max_pooling2d(out, 2, 2)
 
+
     out = tf.contrib.layers.flatten(out)
+    out = tf.nn.dropout(out, keep_prob = 0.3, name='dropout_fc1')  # 0.5 by default
     with tf.variable_scope('fc_1'):
         out = tf.layers.dense(out, num_channels * 8)
         if params.use_batch_norm:
             out = tf.layers.batch_normalization(out, momentum=bn_momentum, training=is_training)
         out = tf.nn.relu(out)
-    with tf.variable_scope('fc_2'):
+        out = tf.nn.dropout(out, keep_prob = 0.3, name='dropout_fc1')  # 0.5 by default
+    with tf.variable_scope('fc_2'): 
         logits = tf.layers.dense(out, params.num_labels)
 
     return logits
