@@ -1,4 +1,4 @@
-# CS230_Project
+#Photo-Geolocation-Recognition Based on Covolutional Neural Network
 
 Our project focuses on geolocation identification through detecting architectural styles using Convolution Neural Networks (CNN).
 In our project, we study both landmark and non-landmark buildings, as both architectures encode lots of valuable information about places. Non-landmark buildings of each city are also a major part of its culture and defines it. Therefore, learning architectural styles at a larger scale can contribute notably to solving geo-localization problems on general street-view photos. 
